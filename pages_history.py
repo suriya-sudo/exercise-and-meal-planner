@@ -1,5 +1,6 @@
 import streamlit as st
 from datetime import datetime
+from auth import delete_plan
 
 def show_history_page():
     """Display user's plan history."""
@@ -40,20 +41,22 @@ def show_history_page():
             
             col1, col2 = st.columns([3, 1])
             with col2:
-                if st.button(f"🗑️ Delete", key=f"delete_{idx}"):
-                    st.session_state.plan_history.pop(idx)
-                    from auth import update_user_data
-                    update_user_data(st.session_state.username, {'plan_history': st.session_state.plan_history})
-                    st.success("Plan deleted!")
-                    st.rerun()
+                if st.button(f"🗑️ Delete", key=f"delete_{plan.get('id', idx)}"):
+                    pid = plan.get('id')
+                    if pid:
+                        delete_plan(pid)
+                        st.success("Plan deleted!")
+                        st.rerun()
     
     st.markdown("---")
     
     if st.button("🗑️ Clear All History", type="secondary"):
         if st.session_state.get('confirm_clear', False):
-            st.session_state.plan_history = []
-            from auth import update_user_data
-            update_user_data(st.session_state.username, {'plan_history': []})
+            # Bulk delete all user's plans
+            from supabase_client import get_supabase
+            if st.session_state.get('user_id'):
+                get_supabase().table('plans').delete().eq('user_id', st.session_state.user_id).execute()
+                st.session_state.plan_history = []
             st.session_state.confirm_clear = False
             st.success("All history cleared!")
             st.rerun()

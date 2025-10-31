@@ -1,4 +1,5 @@
 import os
+import streamlit as st
 from google import genai
 from google.genai import types
 
@@ -10,10 +11,23 @@ from google.genai import types
 
 # This API key is from Gemini Developer API Key, not vertex AI API Key
 def get_client():
-    """Get or create Gemini client with API key validation."""
-    api_key = os.environ.get("GEMINI_API_KEY")
+    """Get or create Gemini client with API key validation.
+    
+    Checks Streamlit secrets first, then environment variables.
+    """
+    api_key = None
+    
+    # Prefer Streamlit secrets for deployment safety
+    if hasattr(st, "secrets") and "GEMINI_API_KEY" in st.secrets:
+        api_key = st.secrets["GEMINI_API_KEY"]
+    else:
+        api_key = os.environ.get("GEMINI_API_KEY")
+    
     if not api_key:
-        raise ValueError("GEMINI_API_KEY environment variable is not set. Please add your API key to continue.")
+        raise ValueError(
+            "GEMINI_API_KEY not found. Please add it to .streamlit/secrets.toml "
+            "or set it as an environment variable."
+        )
     return genai.Client(api_key=api_key)
 
 
